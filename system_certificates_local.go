@@ -2,9 +2,7 @@ package gofortiweb
 
 import (
 	"bytes"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"mime/multipart"
@@ -104,9 +102,9 @@ func (c *Client) SystemGetCertificateLocal(adom, name string) (SystemCertificate
 }
 
 // SystemCreateCertificateLocal creates a new local certificate
-func (c *Client) SystemCreateCertificateLocal(adom string, cert, key []byte, password string) error {
+func (c *Client) SystemCreateCertificateLocal(adom string, name string, cert, key []byte, password string) error {
 
-	form, contentType, err := createCertificateForm(cert, key, password)
+	form, contentType, err := createCertificateForm(name, cert, key, password)
 	if err != nil {
 		return err
 	}
@@ -146,16 +144,9 @@ func (c *Client) SystemCreateCertificateLocal(adom string, cert, key []byte, pas
 	return nil
 }
 
-func createCertificateForm(cert, key []byte, password string) (form *bytes.Buffer, contentType string, err error) {
+func createCertificateForm(name string, cert, key []byte, password string) (form *bytes.Buffer, contentType string, err error) {
 
 	var b bytes.Buffer
-
-	// Parse certificate
-	block, _ := pem.Decode(cert)
-	pub, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return &b, contentType, err
-	}
 
 	w := multipart.NewWriter(&b)
 	defer w.Close()
@@ -163,7 +154,7 @@ func createCertificateForm(cert, key []byte, password string) (form *bytes.Buffe
 	w.WriteField("type", "certificate")
 	w.WriteField("password", password)
 
-	certPart, err := w.CreateFormFile("certificateFile", pub.Subject.CommonName+".crt")
+	certPart, err := w.CreateFormFile("certificateFile", name+".crt")
 	if err != nil {
 		return &b, contentType, err
 	}
