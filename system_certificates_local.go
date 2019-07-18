@@ -10,7 +10,7 @@ import (
 	"mime/multipart"
 )
 
-type SystemCertificatesLocalRes []struct {
+type SystemCertificatesLocalRes struct {
 	ID           string `json:"_id"`
 	Name         string `json:"name"`
 	CanDelete    bool   `json:"can_delete"`
@@ -40,32 +40,32 @@ type SystemCertificateLocalImportRes struct {
 }
 
 // SystemGetCertificatesLocal returns system local certificates
-func (c *Client) SystemGetCertificatesLocal(adom string) (SystemCertificatesLocalRes, error) {
+func (c *Client) SystemGetCertificatesLocal(adom string) ([]SystemCertificatesLocalRes, error) {
 
 	req, err := c.NewRequest(adom, "GET", "System/Certificates/Local", nil)
 	if err != nil {
-		return SystemCertificatesLocalRes{}, fmt.Errorf("Failed create http request: %s", err)
+		return []SystemCertificatesLocalRes{}, fmt.Errorf("Failed create http request: %s", err)
 	}
 
 	get, err := c.Client.Do(req)
 	if err != nil {
-		return SystemCertificatesLocalRes{}, err
+		return []SystemCertificatesLocalRes{}, err
 	}
 	defer get.Body.Close()
 
 	if get.StatusCode != 200 {
-		return SystemCertificatesLocalRes{}, fmt.Errorf("Failed to get system certificates local endpoint with http code: %d", get.StatusCode)
+		return []SystemCertificatesLocalRes{}, fmt.Errorf("Failed to get system certificates local endpoint with http code: %d", get.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(get.Body)
 	if err != nil {
-		return SystemCertificatesLocalRes{}, err
+		return []SystemCertificatesLocalRes{}, err
 	}
 
-	var systemCertificatesLocalRes SystemCertificatesLocalRes
+	var systemCertificatesLocalRes []SystemCertificatesLocalRes
 	err = json.Unmarshal(body, &systemCertificatesLocalRes)
 	if err != nil {
-		return SystemCertificatesLocalRes{}, err
+		return []SystemCertificatesLocalRes{}, err
 	}
 
 	return systemCertificatesLocalRes, nil
