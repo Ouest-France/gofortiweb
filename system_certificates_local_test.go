@@ -54,7 +54,7 @@ func TestSystemCreateCertificateLocal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = client.SystemCreateCertificateLocal(os.Getenv("GOFORTIWEB_ADOM"), cert, key, "")
+	err = client.SystemCreateCertificateLocal(os.Getenv("GOFORTIWEB_ADOM"), "gofortiweb.test.com", cert, key, "")
 	if err != nil {
 		t.Fatal(err)
 	}
