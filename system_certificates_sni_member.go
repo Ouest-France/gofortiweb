@@ -85,8 +85,6 @@ func (c *Client) SystemCreateCertificateSNIMember(adom, sni, domain, cert, inter
 	if err != nil {
 		return err
 	}
-	toto := string(payloadJSON)
-	fmt.Println(toto)
 
 	req, err := c.NewRequest(adom, "POST", fmt.Sprintf("System/Certificates/SNI/%s/SniServerNameIndicationMember", sni), bytes.NewReader(payloadJSON))
 	if err != nil {
@@ -101,6 +99,45 @@ func (c *Client) SystemCreateCertificateSNIMember(adom, sni, domain, cert, inter
 
 	if res.StatusCode != 200 {
 		return fmt.Errorf("certificate SNI member creation failed with status code: %d", res.StatusCode)
+	}
+
+	return nil
+}
+
+// SystemUpdateCertificateSNIMember update an existing SNI certificate member
+func (c *Client) SystemUpdateCertificateSNIMember(adom, sni, id, domain, cert, intermediate string, domaineType int) error {
+
+	createJSON := struct {
+		DomainType          int    `json:"domainType"`
+		LocalCertificate    string `json:"localCertificate"`
+		IntermediateCAGroup string `json:"intermediateCAGroup,omitempty"`
+		CertificateVerify   string `json:"certificateVerify,omitempty"`
+		Domain              string `json:"domain"`
+	}{
+		DomainType:          domaineType,
+		Domain:              domain,
+		LocalCertificate:    cert,
+		IntermediateCAGroup: intermediate,
+	}
+
+	payloadJSON, err := json.Marshal(createJSON)
+	if err != nil {
+		return err
+	}
+
+	req, err := c.NewRequest(adom, "PUT", fmt.Sprintf("System/Certificates/SNI/%s/SniServerNameIndicationMember/%s", sni, id), bytes.NewReader(payloadJSON))
+	if err != nil {
+		return err
+	}
+
+	res, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return fmt.Errorf("certificate SNI member update failed with status code: %d", res.StatusCode)
 	}
 
 	return nil
