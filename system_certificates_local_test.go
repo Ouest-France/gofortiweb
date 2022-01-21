@@ -19,26 +19,9 @@ func TestSystemGetCertificatesLocal(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = client.SystemGetCertificatesLocal(os.Getenv("GOFORTIWEB_ADOM"))
+	_, err = client.SystemGetCertificatesLocal(os.Getenv("GOFORTIWEB_VDOM"))
 	if err != nil {
 		t.Error(err)
-	}
-}
-
-func TestSystemGetCertificateLocal(t *testing.T) {
-
-	client, err := NewClientHelper()
-	if err != nil {
-		t.Error(err)
-	}
-
-	cert, err := client.SystemGetCertificateLocal(os.Getenv("GOFORTIWEB_ADOM"), os.Getenv("GOFORTIWEB_LOCALCERT"))
-	if err != nil {
-		t.Error(err)
-	}
-
-	if cert.CER == "" {
-		t.Error("certificate not found")
 	}
 }
 
@@ -54,7 +37,7 @@ func TestSystemCreateCertificateLocal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = client.SystemCreateCertificateLocal(os.Getenv("GOFORTIWEB_ADOM"), "gofortiweb.test.com", cert, key, "")
+	err = client.SystemCreateCertificateLocal(os.Getenv("GOFORTIWEB_VDOM"), "gofortiweb.test.com", cert, key, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +50,7 @@ func TestSystemDeleteCertificateLocal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = client.SystemDeleteCertificatesLocal(os.Getenv("GOFORTIWEB_ADOM"), os.Getenv("GOFORTIWEB_LOCALCERT"))
+	err = client.SystemDeleteCertificatesLocal(os.Getenv("GOFORTIWEB_VDOM"), "gofortiweb.test.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,6 +84,9 @@ func generateCertificate() (cert, key []byte, err error) {
 
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawCert})
 	key = pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(rawKey)})
+
+	os.WriteFile("/home/pablo/test.crt", cert, 0x777)
+	os.WriteFile("/home/pablo/test.key", key, 0x777)
 
 	return cert, key, nil
 }

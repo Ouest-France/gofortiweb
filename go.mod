@@ -1,3 +1,3 @@
-module github.com/Ouest-France/gofortiweb
+module github.com/Ouest-France/gofortiweb/v2
 
-go 1.12
+go 1.17

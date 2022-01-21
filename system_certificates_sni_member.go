@@ -7,21 +7,26 @@ import (
 	"io/ioutil"
 )
 
+type SystemCertificatesSNIMemberSlice struct {
+	Results []SystemCertificatesSNIMember `json:"results"`
+}
+
 type SystemCertificatesSNIMember struct {
-	ID                  string `json:"id"`
-	Domain              string `json:"domain"`
-	DomainType          int    `json:"domainType"`
-	LocalCertificate    string `json:"localCertificate"`
-	CertificateVerify   string `json:"certificateVerify"`
-	IntermediateCAGroup string `json:"intermediateCAGroup"`
+	ID              string `json:"id,omitempty"`
+	Domain          string `json:"domain"`
+	DomainType      string `json:"domain-type"`
+	MultiLocalCert  string `json:"multi-local-cert"`
+	LocalCert       string `json:"local-cert"`
+	CertificateType string `json:"certificate-type"`
+	InterGroup      string `json:"inter-group"`
 }
 
 // SystemGetCertificateSNIMembers returns SNI members certificates
-func (c *Client) SystemGetCertificateSNIMembers(adom, sni string) ([]SystemCertificatesSNIMember, error) {
+func (c *Client) SystemGetCertificateSNIMembers(vdom, sni string) ([]SystemCertificatesSNIMember, error) {
 
-	req, err := c.NewRequest(adom, "GET", fmt.Sprintf("System/Certificates/SNI/%s/SniServerNameIndicationMember", sni), nil)
+	req, err := c.NewRequest(vdom, "GET", fmt.Sprintf("cmdb/system/certificate.sni/members?mkey=%s", sni), nil)
 	if err != nil {
-		return []SystemCertificatesSNIMember{}, fmt.Errorf("Failed create http request: %s", err)
+		return []SystemCertificatesSNIMember{}, fmt.Errorf("failed create http request: %s", err)
 	}
 
 	get, err := c.Client.Do(req)
@@ -31,7 +36,7 @@ func (c *Client) SystemGetCertificateSNIMembers(adom, sni string) ([]SystemCerti
 	defer get.Body.Close()
 
 	if get.StatusCode != 200 {
-		return []SystemCertificatesSNIMember{}, fmt.Errorf("Failed to get SNI members certificates with http code: %d", get.StatusCode)
+		return []SystemCertificatesSNIMember{}, fmt.Errorf("failed to get SNI members certificates with http code: %d", get.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(get.Body)
@@ -39,19 +44,19 @@ func (c *Client) SystemGetCertificateSNIMembers(adom, sni string) ([]SystemCerti
 		return []SystemCertificatesSNIMember{}, err
 	}
 
-	var systemCertificatesSNIMembers []SystemCertificatesSNIMember
+	var systemCertificatesSNIMembers SystemCertificatesSNIMemberSlice
 	err = json.Unmarshal(body, &systemCertificatesSNIMembers)
 	if err != nil {
 		return []SystemCertificatesSNIMember{}, err
 	}
 
-	return systemCertificatesSNIMembers, nil
+	return systemCertificatesSNIMembers.Results, nil
 }
 
 // SystemGetCertificateSNIMember returns system SNI certificate member by id
-func (c *Client) SystemGetCertificateSNIMember(adom, sni, id string) (SystemCertificatesSNIMember, error) {
+func (c *Client) SystemGetCertificateSNIMember(vdom, sni, id string) (SystemCertificatesSNIMember, error) {
 
-	members, err := c.SystemGetCertificateSNIMembers(adom, sni)
+	members, err := c.SystemGetCertificateSNIMembers(vdom, sni)
 	if err != nil {
 		return SystemCertificatesSNIMember{}, fmt.Errorf("failed to get members list: %s", err)
 	}
@@ -66,19 +71,19 @@ func (c *Client) SystemGetCertificateSNIMember(adom, sni, id string) (SystemCert
 }
 
 // SystemCreateCertificateSNIMember add a new SNI certificate member
-func (c *Client) SystemCreateCertificateSNIMember(adom, sni, domain, cert, intermediate string, domaineType int) error {
+func (c *Client) SystemCreateCertificateSNIMember(vdom, sni, domain, cert, intermediate string, domaineType string) error {
 
 	createJSON := struct {
-		DomainType          int    `json:"domainType"`
-		LocalCertificate    string `json:"localCertificate"`
-		IntermediateCAGroup string `json:"intermediateCAGroup,omitempty"`
-		CertificateVerify   string `json:"certificateVerify,omitempty"`
-		Domain              string `json:"domain"`
+		Data SystemCertificatesSNIMember `json:"data"`
 	}{
-		DomainType:          domaineType,
-		Domain:              domain,
-		LocalCertificate:    cert,
-		IntermediateCAGroup: intermediate,
+		Data: SystemCertificatesSNIMember{
+			Domain:          domain,
+			DomainType:      domaineType,
+			MultiLocalCert:  "disable",
+			CertificateType: "disable",
+			LocalCert:       cert,
+			InterGroup:      intermediate,
+		},
 	}
 
 	payloadJSON, err := json.Marshal(createJSON)
@@ -86,10 +91,15 @@ func (c *Client) SystemCreateCertificateSNIMember(adom, sni, domain, cert, inter
 		return err
 	}
 
-	req, err := c.NewRequest(adom, "POST", fmt.Sprintf("System/Certificates/SNI/%s/SniServerNameIndicationMember", sni), bytes.NewReader(payloadJSON))
+	payloadStr := string(payloadJSON)
+	fmt.Println(payloadStr)
+
+	req, err := c.NewRequest(vdom, "POST", fmt.Sprintf("cmdb/system/certificate.sni/members?mkey=%s", sni), bytes.NewReader(payloadJSON))
 	if err != nil {
 		return err
 	}
+
+	req.Header.Add("Content-Type", "application/json")
 
 	res, err := c.Client.Do(req)
 	if err != nil {
@@ -105,19 +115,19 @@ func (c *Client) SystemCreateCertificateSNIMember(adom, sni, domain, cert, inter
 }
 
 // SystemUpdateCertificateSNIMember update an existing SNI certificate member
-func (c *Client) SystemUpdateCertificateSNIMember(adom, sni, id, domain, cert, intermediate string, domaineType int) error {
+func (c *Client) SystemUpdateCertificateSNIMember(vdom, sni, id, domain, cert, intermediate string, domaineType string) error {
 
 	createJSON := struct {
-		DomainType          int    `json:"domainType"`
-		LocalCertificate    string `json:"localCertificate"`
-		IntermediateCAGroup string `json:"intermediateCAGroup,omitempty"`
-		CertificateVerify   string `json:"certificateVerify,omitempty"`
-		Domain              string `json:"domain"`
+		Data SystemCertificatesSNIMember `json:"data"`
 	}{
-		DomainType:          domaineType,
-		Domain:              domain,
-		LocalCertificate:    cert,
-		IntermediateCAGroup: intermediate,
+		Data: SystemCertificatesSNIMember{
+			Domain:          domain,
+			DomainType:      domaineType,
+			MultiLocalCert:  "disable",
+			CertificateType: "disable",
+			LocalCert:       cert,
+			InterGroup:      intermediate,
+		},
 	}
 
 	payloadJSON, err := json.Marshal(createJSON)
@@ -125,10 +135,12 @@ func (c *Client) SystemUpdateCertificateSNIMember(adom, sni, id, domain, cert, i
 		return err
 	}
 
-	req, err := c.NewRequest(adom, "PUT", fmt.Sprintf("System/Certificates/SNI/%s/SniServerNameIndicationMember/%s", sni, id), bytes.NewReader(payloadJSON))
+	req, err := c.NewRequest(vdom, "PUT", fmt.Sprintf("cmdb/system/certificate.sni/members?mkey=%s&sub_mkey=%s", sni, id), bytes.NewReader(payloadJSON))
 	if err != nil {
 		return err
 	}
+
+	req.Header.Add("Content-Type", "application/json")
 
 	res, err := c.Client.Do(req)
 	if err != nil {
@@ -144,11 +156,11 @@ func (c *Client) SystemUpdateCertificateSNIMember(adom, sni, id, domain, cert, i
 }
 
 // SystemDeleteCertificateSNIMember deletes a SNI certificate member
-func (c *Client) SystemDeleteCertificateSNIMember(adom, sni, id string) error {
+func (c *Client) SystemDeleteCertificateSNIMember(vdom, sni, id string) error {
 
-	req, err := c.NewRequest(adom, "DELETE", fmt.Sprintf("System/Certificates/SNI/%s/SniServerNameIndicationMember/%s", sni, id), nil)
+	req, err := c.NewRequest(vdom, "DELETE", fmt.Sprintf("cmdb/system/certificate.sni/members?mkey=%s&sub_mkey=%s", sni, id), nil)
 	if err != nil {
-		return fmt.Errorf("Failed delete http request: %s", err)
+		return fmt.Errorf("failed delete http request: %s", err)
 	}
 
 	get, err := c.Client.Do(req)
@@ -158,7 +170,7 @@ func (c *Client) SystemDeleteCertificateSNIMember(adom, sni, id string) error {
 	defer get.Body.Close()
 
 	if get.StatusCode != 200 {
-		return fmt.Errorf("Failed to delete system local certificate local with http code: %d", get.StatusCode)
+		return fmt.Errorf("failed to delete system local certificate local with http code: %d", get.StatusCode)
 	}
 
 	return nil

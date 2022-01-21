@@ -12,7 +12,7 @@ func TestSystemGetCertificateSNIMembers(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = client.SystemGetCertificateSNIMembers(os.Getenv("GOFORTIWEB_ADOM"), os.Getenv("GOFORTIWEB_SNI"))
+	_, err = client.SystemGetCertificateSNIMembers(os.Getenv("GOFORTIWEB_VDOM"), os.Getenv("GOFORTIWEB_SNI"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -25,7 +25,7 @@ func TestSystemGetCertificateSNIMember(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = client.SystemGetCertificateSNIMember(os.Getenv("GOFORTIWEB_ADOM"), os.Getenv("GOFORTIWEB_SNI"), "1")
+	_, err = client.SystemGetCertificateSNIMember(os.Getenv("GOFORTIWEB_VDOM"), os.Getenv("GOFORTIWEB_SNI"), "1")
 	if err != nil {
 		t.Error(err)
 	}
@@ -39,12 +39,32 @@ func TestSystemCreateCertificateSNIMember(t *testing.T) {
 	}
 
 	err = client.SystemCreateCertificateSNIMember(
-		os.Getenv("GOFORTIWEB_ADOM"),
+		os.Getenv("GOFORTIWEB_VDOM"),
 		os.Getenv("GOFORTIWEB_SNI"),
-		"loldomain.test.com",
+		"^.*\\.foobar\\.fr",
 		"gofortiweb.test.com",
-		"Lets_Ecnrypt_intermediate",
-		1)
+		"certificat_letsencrypt",
+		"regular")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSystemUpdateCertificateSNIMember(t *testing.T) {
+
+	client, err := NewClientHelper()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = client.SystemUpdateCertificateSNIMember(
+		os.Getenv("GOFORTIWEB_VDOM"),
+		os.Getenv("GOFORTIWEB_SNI"),
+		"1",
+		"^.*\\.foobar\\.fr",
+		"gofortiweb.test.com",
+		"certificat_letsencrypt",
+		"regular")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +78,7 @@ func TestSystemDeleteCertificateSNIMember(t *testing.T) {
 	}
 
 	err = client.SystemDeleteCertificateSNIMember(
-		os.Getenv("GOFORTIWEB_ADOM"),
+		os.Getenv("GOFORTIWEB_VDOM"),
 		os.Getenv("GOFORTIWEB_SNI"),
 		"1")
 	if err != nil {
